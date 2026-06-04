@@ -14,6 +14,87 @@ const port = process.env.PORT || 7860;
 
 app.use(express.json({ limit: '10mb' }));
 
+app.get('/', (req, res) => {
+    res.send(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ernie API Proxy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333; background: #f9f9f9; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { color: #2563eb; margin-top: 0; }
+        .endpoint { background: #1e293b; color: #a5b4fc; padding: 1rem; border-radius: 6px; font-family: monospace; overflow-x: auto; }
+        .status { display: inline-block; padding: 4px 12px; background: #dcfce7; color: #166534; border-radius: 9999px; font-weight: 500; font-size: 0.875rem; margin-bottom: 1rem; }
+        form { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 2rem; }
+        textarea { width: 100%; height: 150px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.875rem; margin-bottom: 1rem; box-sizing: border-box; }
+        button { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        #message { margin-top: 1rem; padding: 1rem; border-radius: 6px; display: none; }
+        .success { background: #dcfce7; color: #166534; }
+        .error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ernie NoAuth Proxy Gateway</h1>
+        <div class="status">● System Online</div>
+        
+        <p>This proxy converts Ernie's proprietary conversational API into a standard OpenAI-compatible format (SSE streaming included).</p>
+        
+        <h3>API Endpoint</h3>
+        <div class="endpoint">POST /v1/chat/completions</div>
+        
+        <form id="addAccountForm">
+            <h3>Add New Account Token</h3>
+            <p style="font-size: 0.875rem; color: #6b7280;">Paste the full <strong>Copy as cURL (bash)</strong> string from the browser request to <code>/conversation/v2</code> here:</p>
+            <textarea id="curlInput" placeholder="curl 'https://ernie.baidu.com/eb/chat/conversation/v2' \\\n  -H 'Acs-Token: ...' \\\n ..."></textarea>
+            <button type="submit">Inject Tokens</button>
+            <div id="message"></div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('addAccountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgEl = document.getElementById('message');
+            const curlStr = document.getElementById('curlInput').value.trim();
+            
+            if (!curlStr) return;
+            
+            try {
+                msgEl.style.display = 'block';
+                msgEl.className = 'message';
+                msgEl.textContent = 'Processing...';
+
+                const res = await fetch('/admin/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ curlString: curlStr })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    msgEl.className = 'success';
+                    msgEl.textContent = 'Account successfully configured!';
+                    document.getElementById('curlInput').value = '';
+                } else {
+                    msgEl.className = 'error';
+                    msgEl.textContent = 'Error: ' + (data.error || 'Unknown error');
+                }
+            } catch (err) {
+                msgEl.className = 'error';
+                msgEl.textContent = 'Network error: ' + err.message;
+            }
+        });
+    </script>
+</body>
+</html>
+    `);
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Basic Admin API to add accounts via cURL string (Optional manual fallback)
