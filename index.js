@@ -17,40 +17,74 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Ernie API Proxy</title>
+    <meta charset="UTF-8">
+    <title>Ernie Proxy Gateway</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; line-height: 1.6; color: #333; background: #f9f9f9; }
-        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h1 { color: #2563eb; margin-top: 0; }
-        .endpoint { background: #1e293b; color: #a5b4fc; padding: 1rem; border-radius: 6px; font-family: monospace; overflow-x: auto; }
-        .status { display: inline-block; padding: 4px 12px; background: #dcfce7; color: #166534; border-radius: 9999px; font-weight: 500; font-size: 0.875rem; margin-bottom: 1rem; }
-        form { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 2rem; }
-        textarea { width: 100%; height: 150px; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.875rem; margin-bottom: 1rem; box-sizing: border-box; }
-        button { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #1d4ed8; }
-        #message { margin-top: 1rem; padding: 1rem; border-radius: 6px; display: none; }
-        .success { background: #dcfce7; color: #166534; }
-        .error { background: #fee2e2; color: #991b1b; }
+        :root { --primary: #3b82f6; --primary-hover: #2563eb; --bg: #0f172a; --surface: rgba(30, 41, 59, 0.7); --text: #f8fafc; --text-muted: #94a3b8; --border: rgba(255, 255, 255, 0.1); }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 2rem; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; background: radial-gradient(circle at top right, #1e1b4b, #0f172a); }
+        .glass-panel { background: var(--surface); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border); padding: 2.5rem; border-radius: 16px; width: 100%; max-width: 800px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 2rem; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+        h1 { margin: 0; font-size: 1.875rem; font-weight: 700; background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .badge { background: rgba(16, 185, 129, 0.1); color: #34d399; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 500; display: flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .badge::before { content: ''; display: block; width: 8px; height: 8px; background: #34d399; border-radius: 50%; box-shadow: 0 0 8px #34d399; }
+        h3 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 1rem; color: #e2e8f0; }
+        .endpoint-box { background: rgba(0,0,0,0.3); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; font-family: monospace; font-size: 0.95rem; color: #a5b4fc; display: flex; align-items: center; letter-spacing: 0.5px; }
+        .models-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .model-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 1.25rem; border-radius: 10px; transition: transform 0.2s, background 0.2s; }
+        .model-card:hover { transform: translateY(-3px); background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.2); }
+        .model-name { font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem; display: block; }
+        .model-id { font-size: 0.85rem; color: var(--text-muted); font-family: monospace; }
+        textarea { width: 100%; height: 160px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); color: #e2e8f0; padding: 1rem; border-radius: 10px; font-family: monospace; font-size: 0.9rem; line-height: 1.5; outline: none; transition: border-color 0.2s; resize: vertical; }
+        textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        textarea::placeholder { color: #475569; }
+        button { background: var(--primary); color: white; border: none; padding: 0.875rem 1.5rem; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 1rem; width: 100%; font-family: inherit; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        #message { margin-top: 1.25rem; padding: 1rem; border-radius: 8px; display: none; font-size: 0.95rem; font-weight: 500; animation: fadeUp 0.3s ease; }
+        .success { background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .error { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Ernie NoAuth Proxy Gateway</h1>
-        <div class="status">● System Online</div>
+    <div class="glass-panel">
+        <header>
+            <h1>Ernie Proxy Gateway</h1>
+            <div class="badge">System Online</div>
+        </header>
+
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Seamlessly bridge Ernie's proprietary API to OpenAI's completion format supporting native SSE streaming and continuations.</p>
         
-        <p>This proxy converts Ernie's proprietary conversational API into a standard OpenAI-compatible format (SSE streaming included).</p>
+        <h3>Available Models</h3>
+        <div class="models-grid">
+            <div class="model-card">
+                <span class="model-name">EB5.1 Thinking</span>
+                <span class="model-id">EB5.1-Thinking</span>
+            </div>
+            <div class="model-card">
+                <span class="model-name">EB5.1 Instant</span>
+                <span class="model-id">EB5.1-Instant</span>
+            </div>
+            <div class="model-card">
+                <span class="model-name">EB Cobuddy</span>
+                <span class="model-id">EB-Cobuddy</span>
+            </div>
+        </div>
         
         <h3>API Endpoint</h3>
-        <div class="endpoint">POST /v1/chat/completions</div>
+        <div class="endpoint-box">POST /v1/chat/completions</div>
         
-        <form id="addAccountForm">
-            <h3>Add New Account Token</h3>
-            <p style="font-size: 0.875rem; color: #6b7280;">Paste the full <strong>Copy as cURL (bash)</strong> string from the browser request to <code>/conversation/v2</code> here:</p>
-            <textarea id="curlInput" placeholder="curl 'https://ernie.baidu.com/eb/chat/conversation/v2' \\\n  -H 'Acs-Token: ...' \\\n ..."></textarea>
-            <button type="submit">Inject Tokens</button>
+        <form id="addAccountForm" style="margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+            <h3>Inject Credentials</h3>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1rem;">Paste the full <strong style="color: #cbd5e1;">Copy as cURL (bash)</strong> string from the <code>/conversation/v2</code> network request below to bypass captchas seamlessly.</p>
+            <textarea id="curlInput" placeholder="curl 'https://ernie.baidu.com/eb/chat/conversation/v2' \
+  -H 'Acs-Token: xxx...' \
+  ..."></textarea>
+            <button type="submit">Activate Token</button>
             <div id="message"></div>
         </form>
     </div>
@@ -60,13 +94,17 @@ app.get('/', (req, res) => {
             e.preventDefault();
             const msgEl = document.getElementById('message');
             const curlStr = document.getElementById('curlInput').value.trim();
+            const btn = e.target.querySelector('button');
             
             if (!curlStr) return;
             
             try {
+                btn.textContent = 'Injecting...';
+                btn.style.opacity = '0.7';
+                
                 msgEl.style.display = 'block';
                 msgEl.className = 'message';
-                msgEl.textContent = 'Processing...';
+                msgEl.textContent = 'Processing cURL string...';
 
                 const res = await fetch('/admin/accounts', {
                     method: 'POST',
@@ -78,15 +116,18 @@ app.get('/', (req, res) => {
                 
                 if (res.ok) {
                     msgEl.className = 'success';
-                    msgEl.textContent = 'Account successfully configured!';
+                    msgEl.textContent = '✓ Token successfully injected and activated!';
                     document.getElementById('curlInput').value = '';
                 } else {
                     msgEl.className = 'error';
-                    msgEl.textContent = 'Error: ' + (data.error || 'Unknown error');
+                    msgEl.textContent = '✗ Error: ' + (data.error || 'Unknown error');
                 }
             } catch (err) {
                 msgEl.className = 'error';
-                msgEl.textContent = 'Network error: ' + err.message;
+                msgEl.textContent = '✗ Network error: ' + err.message;
+            } finally {
+                btn.textContent = 'Activate Token';
+                btn.style.opacity = '1';
             }
         });
     </script>
